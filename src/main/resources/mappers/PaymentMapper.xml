@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wzy.paymentcenter.mapper.PaymentMapper">
+
+    <select id="selectByPayNoForUpdate" resultType="com.wzy.paymentcenter.domain.entity.PaymentDO">
+        SELECT * FROM ume_trip_airport_payment
+        WHERE pay_no = #{payNo}
+            FOR UPDATE
+    </select>
+
+    <update id="updateToPaid">
+        UPDATE ume_trip_airport_payment
+        SET status = 'PAID',
+            channel_trade_no = #{channelTradeNo},
+            paid_at = FROM_UNIXTIME(#{paidAt}/1000),
+            amount = #{amount},
+            update_time = NOW()
+        WHERE id = #{id}
+          AND status = 'UNPAID'
+    </update>
+
+
+</mapper>
