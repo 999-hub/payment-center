@@ -5,20 +5,24 @@
 <mapper namespace="com.wzy.paymentcenter.mapper.PaymentMapper">
 
     <select id="selectByPayNoForUpdate" resultType="com.wzy.paymentcenter.domain.entity.PaymentDO">
-        SELECT * FROM ume_trip_airport_payment
-        WHERE pay_no = #{payNo}
+        SELECT * FROM payment
+        WHERE order_no = #{orderNo}
             FOR UPDATE
     </select>
 
     <update id="updateToPaid">
-        UPDATE ume_trip_airport_payment
-        SET status = 'PAID',
-            channel_trade_no = #{channelTradeNo},
-            paid_at = FROM_UNIXTIME(#{paidAt}/1000),
-            amount = #{amount},
-            update_time = NOW()
+        UPDATE payment
+        SET status = 1,
+            serial_no = #{channelTradeNo}
         WHERE id = #{id}
-          AND status = 'UNPAID'
+          AND status = 0
+    </update>
+
+    <update id="updateToClosed">
+        UPDATE payment
+        SET status = 2
+        WHERE id = #{id}
+          AND status = 0
     </update>
 
 

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wzy.paymentcenter.mapper.OutboxEventMapper">
+
+    <resultMap id="OutboxMap" type="com.wzy.paymentcenter.domain.entity.OutboxEventDO">
+        <id column="id" property="id"/>
+        <result column="event_id" property="eventId"/>
+        <result column="topic" property="topic"/>
+        <result column="event_type" property="eventType"/>
+        <result column="aggregate_id" property="aggregateId"/>
+        <result column="payload" property="payload"/>
+        <result column="status" property="status"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="next_retry_at" property="nextRetryAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="sent_at" property="sentAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.wzy.paymentcenter.domain.entity.OutboxEventDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO outbox_event
+        (event_id, topic, event_type, aggregate_id, payload, status,
+         retry_count, next_retry_at, created_at, updated_at, sent_at)
+        VALUES
+            (#{eventId}, #{topic}, #{eventType}, #{aggregateId}, CAST(#{payload} AS JSON), #{status},
+             #{retryCount}, #{nextRetryAt}, #{createdAt}, #{updatedAt}, #{sentAt})
+    </insert>
+
+    <!-- 事务内锁行 + 跳过其他worker锁住的行 -->
+    <select id="selectForUpdateSkipLocked" resultMap="OutboxMap">
+        SELECT *
+        FROM outbox_event
+        WHERE status IN ('NEW','FAILED')
+          AND (next_retry_at IS NULL OR next_retry_at <![CDATA[<=]]> #{now})
+        ORDER BY id
+            LIMIT #{limit}
+            FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="markSendingBatch">
+        UPDATE outbox_event
+        SET status='SENDING',
+        updated_at=#{now}
+        WHERE status IN ('NEW','FAILED')
+        AND id IN
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="markSent">
+        UPDATE outbox_event
+        SET status='SENT',
+            sent_at=#{now},
+            updated_at=#{now}
+        WHERE id=#{id}
+          AND status='SENDING'
+    </update>
+
+    <update id="markFailed">
+        UPDATE outbox_event
+        SET status='FAILED',
+            retry_count=#{retryCount},
+            next_retry_at=#{nextRetryAt},
+            updated_at=#{now}
+        WHERE id=#{id}
+          AND status='SENDING'
+    </update>
+
+</mapper>

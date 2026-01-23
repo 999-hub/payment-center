@@ -1,8 +1,8 @@
 package com.wzy.paymentcenter.iface;
 
-import com.wzy.paymentcenter.domain.PayNotifyRes;
+import com.wzy.paymentcenter.domain.req.PayNotifyReq;
 
 
 public interface ICallBack {
-    PayNotifyRes handlePayNotify(PayNotifyReq request);
+    void handlePayNotify(PayNotifyReq request);
 }
